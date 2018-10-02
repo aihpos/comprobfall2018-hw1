@@ -373,7 +373,7 @@ class RobotMap:
 
 # Usage: right now it'll throw an error with connecting edges because of recursion depth
 # we'll have to write a function to shove all of this together so that we can just call map.initialize(); or something like that
-file_name = "map_5.txt";
+file_name = "map_1.txt";
 map_file = open(file_name, "r");
 file_contents = str(map_file.read())
 map = RobotMap(file_contents)
