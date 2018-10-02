@@ -5,6 +5,7 @@
 # License: Apache v2.0 <http://www.apache.org/licenses/LICENSE-2.0.html>
 import collections
 import math
+import matplotlib.pyplot as plt
 
 # class SimpleGraph:
 #     def __init__(self):
@@ -171,3 +172,10 @@ def a_star_search(graph, start, goal):
                 frontier.put(next, priority)
                 came_from[next] = current
     return -1
+
+# def fda_search(graph, start, goal):
+#     # here is fda search
+#     return -1
+#
+# def line_of_sight(current, next):
+#     x_0 = current[0]
