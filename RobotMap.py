@@ -15,6 +15,7 @@ from operator import itemgetter
 '''
 
 '''
+
 	PLEASE READ THIS THANK U 
 
 	** Things that still need to be done **
@@ -153,6 +154,7 @@ class RobotMap:
             first_v = curr_obstacle.vertex_list[0];
             last_v = curr_obstacle.vertex_list[len(curr_obstacle.vertex_list) - 1];
             self.connect_points(self.offset_from_center(last_v[0], last_v[1]), self.offset_from_center(first_v[0], first_v[1]));
+        self.fill_polygons();
 
       
     def load_walls(self):
@@ -221,6 +223,21 @@ class RobotMap:
             y = current_cell[1];
             self.grid[x][y] = 1;
 
+    def gen_visibility_graph(self):
+        #extremely rudimentary and not what we need but at least its something that maybe(?) generates a somewhat visibility graph
+        #this literally just draws a path between all combinations of vertices and then if we have time we can visualize the grid and display it 
+        #but we probably won't
+        vis_graph = self.grid;
+        for i in range(0, len(self.obstacles)):
+            for j in range(i + 1, len(self.obstacles)):
+                ob1 = self.obstacles[i];
+                ob2 = self.obstacles[j];
+                for x in range(0, len(ob1.vertex_list)):
+                    for y in range(0, len(ob2.vertex_list)):
+                        self.connect_points(self.offset_from_center(ob1.vertex_list[x]), self.offset_from_center(ob2.vertex_list[y]));
+        return vis_graph;
+
+
     def get_path_between_cells(self, map, begin, end):
         print "finding path between " + str(begin) + " and " + str(end);
         queue = collections.deque([[begin]])
@@ -242,8 +259,17 @@ class RobotMap:
         print "todo";
         filling = False;
         for i in range(1, len(self.grid) - 1):
+            curr_row_fill = [];
             for j in range(1, len(self.grid[0]) - 1):
-                if self.grid[i][j] == 1;
+                if self.grid[i][j] == 1:
+                    if filling:
+                        for x in range(0, len(curr_row_fill)):
+                            self.grid[i][x] = 1;
+                    filling = not filling;
+                else:
+                    if filling:
+                        curr_row_fill.append(j);
+
 
 
     def should_vertices_connect(self, v1, v2):
