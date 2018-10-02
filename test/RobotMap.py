@@ -2,9 +2,14 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors, mpl, pyplot;
+from matplotlib import colors, pyplot;
 import re
 from collections import deque, namedtuple
+from shapely import geometry
+from matplotlib import pyplot as plt
+from shapely.geometry.polygon import Polygon
+from descartes import PolygonPatch
+from operator import itemgetter
 
 '''
 	PLEASE READ THIS THANK U 
@@ -79,7 +84,9 @@ class RobotMap:
         # just a parsing function to store obstacle vertices
         obstacle_set = obstacle_listings.split("\n");
         for i in range(0, len(obstacle_set)):
-            current_obstacle_vertices = str(obstacle_set[i]).split(" ");
+            current_obstacle_vertices = str(obstacle_set[i]).split();
+            if (len(current_obstacle_vertices) > 5):
+                del current_obstacle_vertices[-1]
             current_vertex_list = [];
             for j in range(0, len(current_obstacle_vertices)):
                 current_vertices = current_obstacle_vertices[j];
@@ -90,6 +97,8 @@ class RobotMap:
     def load_start_goal_points(self, start_goal_point_listings):
         # also just a parsing function for storing start/goal points
         start_goal_point_list = start_goal_point_listings.split("\n");
+        del start_goal_point_list[-1]
+        # print(start_goal_point_list)
         for i in range(0, len(start_goal_point_list)):
             start_goal_pair = start_goal_point_list[i].split(" ");
             current_start = start_goal_pair[0];
@@ -101,7 +110,7 @@ class RobotMap:
         # helper function for parsing to return a tuple of floats containing the points in an ordered pair
         coordinates = str(ordered_pair)[1:len(ordered_pair) - 1].split(",");
         if len(coordinates) != 2:
-            print "uh oh spaghettio";
+            print "uh oh spaghettio in extract_coordinates_from_ordered_pair";
             return (":^(", ":^(");
         else:
             return (float(coordinates[0]), float(coordinates[1]));
@@ -114,22 +123,22 @@ class RobotMap:
         # generally, a resolution of x means that there are x^2 points per 1 meter block
         self.grid = [[0] * (int(self.resolution * width) + 2) for _ in range(int(length * self.resolution) + 2)];
         adjusted_center = self.offset_from_center(0, 0);
-        print adjusted_center;  # this is just debugging to test the offset/resolution stuff we can remove this later
+        # print adjusted_center;  # this is just debugging to test the offset/resolution stuff we can remove this later
         self.load_walls();  # puts all of the world boundaries as unsafe positions
 
     def load_obstacles_into_grid(self):
         # !!! right now, this only loads obstacle vertices into the grid, we'll need to add the edge generation in
-        print "haha need 2 do this";
         print "# of obstacles:" + str(len(self.obstacles));
         for i in range(0, len(self.obstacles)):
             current_obstacle = self.obstacles[i];
+            print(current_obstacle.vertex_list)
             for j in range(0, current_obstacle.num_vertices):
                 current_vertex = current_obstacle.vertex_list[j];
                 x = current_vertex[0];
                 y = current_vertex[1];
                 x_offset = self.offset_from_center(x, y)[0];  # adjusting points for offsets
                 y_offset = self.offset_from_center(x, y)[1];
-                print str(x_offset) + "," + str(y_offset);
+                # print str(x_offset) + "," + str(y_offset);
                 self.grid[int(x_offset)][int(y_offset)] = (i + 2);
 
     def load_walls(self):
@@ -149,8 +158,7 @@ class RobotMap:
         y1 = v1[1];
         x2 = v2[0];
         y2 = v2[1];
-        if abs(x1 - x2) <= 1 / (self.resolution * self.resolution) and abs(y1 - y2) <= 1 / (
-                self.resolution * self.resolution):
+        if abs(x1 - x2) <= 1 / (self.resolution) and abs(y1 - y2) <= 1 / (self.resolution):
             return;
         x_direction = 0;
         y_direction = 0;
@@ -189,13 +197,43 @@ class RobotMap:
 
     def show_visibility_graph(self):
         # visualizes the visibility graph
-        print "todo";
+
+        '''fig = plt.figure()
+        for i in range(0, len(self.obstacles)):
+            current_obstacle = self.obstacles[i];
+            vertices_of_one_polygon = []
+            for j in range (0, current_obstacle.num_vertices):
+                current_vertex = current_obstacle.vertex_list[j];
+                vertices_of_one_polygon.append(current_vertex)
+
+            #print(vertices_of_one_polygon)
+            new_polygon = Polygon(vertices_of_one_polygon)
+            ax = fig.add_subplot(111)
+            new_patch = PolygonPatch(new_polygon)
+            ax.add_patch(new_patch)
+        print(self.world_corners)
+        xvals = []
+        yvals = []
+        for k in range (0, len(self.world_corners)):
+            new_tuple = self.world_corners[k]
+            xvals.append(new_tuple[0])
+            yvals.append(new_tuple[1])
+        xrange = [min(xvals), max(xvals)]
+        yrange = [min(yvals), max(yvals)]
+        print(yrange)
+
+
+        ax.set_xlim(*xrange)
+        ax.set_ylim(*yrange)
+        ax.set_aspect(1)
+
+        plt.show()'''
 
     def offset_from_center(self, x, y):
         # offsets a point from the center of the grid considering resolution
         width = self.map_size[0];
         length = self.map_size[1];
-        return ((x + width / 2) * self.resolution, (y + length / 2) * self.resolution);
+        return ((float(x) + width / 2) * self.resolution, (float(y) + length / 2) * self.resolution);
 
     def compute_map_size(self):
         # Returns a tuple containing the length and width of the map size in meters
@@ -238,8 +276,9 @@ class RobotMap:
         pattern = re.compile(r'\s+---\s+');  # regex to get rid of irregularities with spacing on the delimiters
         map_file_contents_normalized = re.sub(pattern, '*', self.map_file_contents);
         map_file_split = map_file_contents_normalized.split("*");
+        print(len(map_file_split))
         if len(map_file_split) != 3:
-            print "uh oh spaghettio";
+            print "uh oh spaghettiooooo";
         else:
             self.load_world_corners(map_file_split[0]);
             self.load_start_goal_points(map_file_split[2]);
@@ -279,8 +318,8 @@ class RobotMap:
         self.print_grid();
 
     def visualize_graph(self):
-        # visualization purposes, needs to be updates as it throws a conversion error
-        plt.figure();
+        '''# visualization purposes, needs to be updates as it throws a conversion error
+        #plt.figure();
         im = plt.imshow(self.grid,
                         interpolation='none', vmin=0, vmax=1, aspect='equal');
         fig, ax = plt.subplots()
@@ -291,18 +330,58 @@ class RobotMap:
         # Customize the grid
         ax.grid(linestyle='-', linewidth='0.5', color='red')
         plt.show();
+        for i in range(0, len(self.obstacles)):
+            current_obstacle = self.obstacles[i];
+            for j in range(0, current_obstacle.num_vertices):
+                current_vertex = current_obstacle.vertex_list[j];
+                x = current_vertex[0];
+                y = current_vertex[1];
+
+                x_offset = self.offset_from_center(x, y)[0];  # adjusting points for offsets
+                y_offset = self.offset_from_center(x, y)[1];'''
+
+        fig = plt.figure()
+        for i in range(0, len(self.obstacles)):
+            current_obstacle = self.obstacles[i];
+            vertices_of_one_polygon = []
+            for j in range(0, current_obstacle.num_vertices):
+                current_vertex = current_obstacle.vertex_list[j];
+                vertices_of_one_polygon.append(current_vertex)
+
+            # print(vertices_of_one_polygon)
+            new_polygon = Polygon(vertices_of_one_polygon)
+            ax = fig.add_subplot(111)
+            new_patch = PolygonPatch(new_polygon)
+            ax.add_patch(new_patch)
+        print(self.world_corners)
+        xvals = []
+        yvals = []
+        for k in range(0, len(self.world_corners)):
+            new_tuple = self.world_corners[k]
+            xvals.append(new_tuple[0])
+            yvals.append(new_tuple[1])
+        xrange = [min(xvals), max(xvals)]
+        yrange = [min(yvals), max(yvals)]
+        print(yrange)
+
+        ax.set_xlim(*xrange)
+        ax.set_ylim(*yrange)
+        ax.set_aspect(1)
+
+        plt.show()
 
 
 # Usage: right now it'll throw an error with connecting edges because of recursion depth
 # we'll have to write a function to shove all of this together so that we can just call map.initialize(); or something like that
-file_name = "map1.txt";
+file_name = "map_5.txt";
 map_file = open(file_name, "r");
-file_contents = str(map_file.read());
-map = RobotMap(file_contents);
-map.init_map();
-map.compute_map_size();
-map.generate_grid();
-map.load_obstacles_into_grid();
-map.print_grid();
+file_contents = str(map_file.read())
+map = RobotMap(file_contents)
+map.init_map()
+map.compute_map_size()
+map.generate_grid()
+map.load_obstacles_into_grid()
+map.print_grid()
+map.visualize_graph()
 
-print map.grid;
+# print map.grid;
